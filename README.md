@@ -42,6 +42,18 @@ Pause/resume and tick-rate controls are on the console; the event log
 records mode switches, symbolic outcomes, episodic commits, and governor
 flags (pathological habituation / pathological perseveration).
 
+## Verification status
+
+Reverified on 2026-08-27 with Bun 1.4.0:
+
+- `bun install --frozen-lockfile` and `bun run typecheck` pass.
+- `bun run start` serves the console HTML successfully.
+- A real WebSocket client receives the initial `hello` message followed by a
+  live `tick` snapshot containing the simulation time and arbiter mode.
+
+There is no automated unit-test or lint suite in this repository; TypeScript
+checking plus the HTTP/WebSocket runtime smoke are the current local gates.
+
 ## Layout
 
 ```
