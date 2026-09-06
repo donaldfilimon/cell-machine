@@ -19,6 +19,8 @@ bun install
 bun run dev        # hot-reload dev server (bun run --hot server.ts)
 bun run start      # plain server.ts run
 bun run typecheck  # tsc --noEmit
+# 200 headless ticks through Cell.tick(), no server or browser:
+bun -e 'import { Cell } from "./src/core/cell"; const c = new Cell(); let s; for (let i = 0; i < 200; i++) s = c.tick(); console.log(s.t, s.arbiter.mode, s.predictor.errorEma)'
 ```
 
 There is no test suite and no lint script configured — `typecheck` is the
