@@ -1,105 +1,52 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## What this is
-
-A Bun/TypeScript implementation of a "Cell-State Adaptive Problem Solver" — a
-layered, non-ML reactive control architecture, plus a live browser console
-that streams its internal state over a WebSocket. Every module is a small,
-real, runnable implementation of a specific mechanism (leaky-integrator
-echo-state reservoir, delta-rule online predictor, habituation motif,
-cosine-similarity episodic recall, bounded BFS symbolic search) — there are
-no ML frameworks and no mocked data anywhere in the tick loop.
+Canonical agent guidance; `AGENTS.md` points here.
 
 ## Commands
 
-```
-bun install
-bun run dev        # hot-reload dev server (bun run --hot server.ts)
-bun run start      # plain server.ts run
+```sh
+bun run dev        # bun run --hot server.ts
+bun run start      # bun run server.ts
 bun run typecheck  # tsc --noEmit
-# 200 headless ticks through Cell.tick(), no server or browser:
+# Headless smoke, without a server or browser:
 bun -e 'import { Cell } from "./src/core/cell"; const c = new Cell(); let s; for (let i = 0; i < 200; i++) s = c.tick(); console.log(s.t, s.arbiter.mode, s.predictor.errorEma)'
 ```
 
-There is no test suite and no lint script configured — `typecheck` is the
-only automated check. Run it after touching anything under `src/core/`.
+- Use Bun and `bun.lock`; there is no runtime version pin in `package.json`.
+- `typecheck` is the only configured automated check. There is no test suite,
+  lint script, build script, or CI workflow. A headless smoke is not a test suite.
+- `tsconfig.json` checks TypeScript with strict indexed access; it does not
+  check the plain-JS browser console in `public/app.js`.
+- `Bun.serve` imports `public/index.html` directly; no Vite or `dist/` step.
+  `PORT` defaults to 3000. Server changes also need an HTTP/WebSocket smoke:
+  `/ws` sends `hello` on connection and `tick` messages with `snapshot` afterward.
 
-The server listens on `$PORT` (default 3000); open `http://localhost:3000`.
-There's no build step: `Bun.serve` serves `public/index.html` directly via
-the `routes` map in `server.ts`, and Bun transpiles the imported `.ts`/`.js`
-on the fly.
+## Architecture and coupling
 
-## Architecture
+- This is a server-side reactive-control reference implementation with synthetic
+  stimuli, a reservoir, online predictor, episodic recall, and a bounded toy BFS.
+  It is not the React/WebGPU app in sibling `cell-state-adaptive-bun-validated`,
+  despite their identical package names.
+- `src/core/cell.ts::Cell.tick()` is authoritative for execution order:
+  stimulus -> habituation -> reservoir -> predictor -> adaptive memory ->
+  episodic commit/retrieve -> arbiter -> action/planner -> governor -> snapshot.
+- Habituation gates the stimulus before the reservoir and gates the initial
+  action readout again. Predict mode then blends in the predicted readout.
+- `arbiter.ts` checks episodic recall first, short-circuiting to `predict`.
+  Escalation uses `errorEma`, not instantaneous predictor error.
+- `symbolic.ts` runs only for escalation; an exhausted plan causes conservative
+  action dampening in `Cell.tick()`, not an unbounded retry.
+- `governor.ts` audits prolonged low-gate input and exhausted escalations;
+  flagged actions are norm-clamped. It does not choose the arbiter mode.
+- `src/core/types.ts` defines state/snapshot contracts. Extend the producing
+  stage in `Cell.tick()` and consuming views in `public/app.js` together.
+- `server.ts` owns one shared `Cell`, timer, and running flag for all sockets.
+  `inject`, `pause`, `resume`, and `set-speed` affect everyone, not a client session.
+  Tick speed is clamped to 15-1000 ms; the simulation runs without clients.
+- `public/app.js` renders snapshots into canvas views and rolling histories;
+  it does not run the simulation. Core changes can be exercised headlessly.
 
-**One tick = one pass through a fixed pipeline**, orchestrated by
-`src/core/cell.ts::Cell.tick()`. The pipeline order matters and mirrors the
-design doc's data flow — each stage consumes the previous stage's output:
+## Git workflow
 
-```
-stimulus (u_t)
-  -> habituation gate (per-channel novelty filter, modulates input)
-  -> reservoir step (r_t: leaky-integrator echo-state net, biased by memory)
-  -> predictor step (theta_t: online linear model, predicts next r_t)
-  -> adaptive memory update (m_t: decaying/reinforcible trace)
-  -> episodic commit + retrieve (e_t: cosine-similarity store, high-value only)
-  -> arbiter decision (react | predict | escalate)
-  -> action synthesis (readout matrix Wout, modulated by decision + gate)
-  -> safety governor (audits, may clamp action)
-  -> CellSnapshot (everything above, streamed to the browser as JSON)
-```
-
-Key coupling to know before editing any single module:
-- The habituation gate multiplies the raw stimulus *before* it reaches the
-  reservoir (`cell.ts`: `gateModulatedInput`), and multiplies the action
-  output again at the end — it's applied twice, once on the way in and once
-  on the way out.
-- The arbiter (`arbiter.ts`) checks episodic recall *first*— a matching
-  high-value episode short-circuits straight to `predict` mode regardless of
-  gate/error state, per the design doc's "recognize before recompute" intent.
-- `errorEma` (slow-moving average of predictor error) drives escalation, not
-  the instantaneous `error` — this is what makes escalation about *sustained*
-  novelty rather than single-tick spikes.
-- The safety governor (`governor.ts`) never changes behavior directly; it
-  only watches for two named failure modes (habituation gate stuck near-zero
-  under real input = "pathological habituation"; repeated exhausted symbolic
-  escalations = "pathological perseveration") and clamps the action vector
-  by norm if either fires.
-- Shared state shape lives entirely in `src/core/types.ts` (`x_t = {r_t, m_t,
-  theta_t, e_t}` plus the `CellSnapshot` sent to the client). Adding a new
-  field to the pipeline means updating the relevant state interface here and
-  the corresponding spot in `Cell.tick()`.
-
-`server.ts` owns the WebSocket lifecycle and the tick timer (`tickMs`,
-adjustable at runtime via a `set-speed` message) but has no simulation logic
-of its own — it just calls `cell.tick()` on an interval and broadcasts the
-snapshot, and forwards `inject`/`pause`/`resume` client messages into
-`Cell.inject()` / the `running` flag.
-
-`public/app.js` is a plain-JS, framework-free console: it keeps small
-rolling buffers (`HISTORY = 240` ticks) per metric and redraws several
-`<canvas>` views (a "membrane" signature view, trace plots, a layer-map
-diagram) from each incoming snapshot. There's no client-side simulation
-state — it is a pure renderer of what the server streams.
-
-## Extending the simulation
-
-Per the README, swapping in a different planner, reservoir size, or real
-sensor input is meant to be a single-module replacement — the tick loop in
-`cell.ts` and the typed contract in `types.ts` are the stable interface
-everything else is built against. When adding a new layer, wire it into the
-`Cell.tick()` sequence at the point that matches its place in the pipeline
-above, extend `CellSnapshot`, and update `public/app.js` if it should be
-visualized.
-
-<!-- machine-git-policy -->
-## Git workflow (machine policy, 2026-08-27)
-
-Work on the default branch in this canonical checkout. Do not create
-branches or worktrees by default; they are for tasks that genuinely need
-isolation, or when Donald asks. Any worktree or topic branch created here
-must be merged back into this checkout's default branch, the worktree
-removed, and the branch deleted, before pushing and before the task is
-called done. Full policy: `~/.claude/CLAUDE.md` (*Git discipline*).
-<!-- /machine-git-policy -->
+Use this canonical checkout's default branch; branches/worktrees are opt-in
+under the machine policy in `~/.claude/CLAUDE.md`, not the default workflow.
