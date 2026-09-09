@@ -24,7 +24,13 @@ export function matVec(m: number[][], v: number[]): number[] {
   for (let i = 0; i < m.length; i++) {
     let s = 0;
     const row = m[i]!;
-    for (let j = 0; j < v.length; j++) s += row[j]! * v[j]!;
+    // `row[j]` is genuinely absent when `v` is longer than the row, and the
+    // non-null assertion that used to stand here was false at runtime: the
+    // product became NaN and propagated silently through tanh, the norms and
+    // the reservoir. `?? 0` is what `addVec` and `cosineSim` already do for an
+    // out-of-range index, so a dimension mismatch now truncates consistently
+    // instead of poisoning the network.
+    for (let j = 0; j < v.length; j++) s += (row[j] ?? 0) * v[j]!;
     out[i] = s;
   }
   return out;

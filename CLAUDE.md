@@ -8,13 +8,18 @@ Canonical agent guidance; `AGENTS.md` points here.
 bun run dev        # bun run --hot server.ts
 bun run start      # bun run server.ts
 bun run typecheck  # tsc --noEmit
+bun run test       # bun test src
+bun run check      # typecheck, then test -- the gate
 # Headless smoke, without a server or browser:
 bun -e 'import { Cell } from "./src/core/cell"; const c = new Cell(); let s; for (let i = 0; i < 200; i++) s = c.tick(); console.log(s.t, s.arbiter.mode, s.predictor.errorEma)'
 ```
 
 - Use Bun and `bun.lock`; there is no runtime version pin in `package.json`.
-- `typecheck` is the only configured automated check. There is no test suite,
-  lint script, build script, or CI workflow. A headless smoke is not a test suite.
+- `check` is the gate: `typecheck` then `test`. There is still no lint script,
+  build script, or CI workflow, and a headless smoke is not a test suite.
+- The suite covers `src/core/math.ts` only. Everything else in `src/core/` is
+  untested, so a green `check` says the numeric helpers hold and says nothing
+  about the cell, reservoir, arbiter or governor.
 - `tsconfig.json` checks TypeScript with strict indexed access; it does not
   check the plain-JS browser console in `public/app.js`.
 - `Bun.serve` imports `public/index.html` directly; no Vite or `dist/` step.

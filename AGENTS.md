@@ -2,7 +2,7 @@
 
 See [CLAUDE.md](CLAUDE.md) — it is canonical for this repository.
 
-Gate is `bun run typecheck` (`tsc --noEmit`); there is no test suite or lint script. The headless tick-loop command is in `CLAUDE.md` under Commands.
+Gate is `bun run check` (`tsc --noEmit`, then `bun test src`); there is no lint script. The suite covers `src/core/math.ts` only. The headless tick-loop command is in `CLAUDE.md` under Commands.
 
 <!-- machine-git-policy -->
 ## Git workflow (machine policy, 2026-08-27)
