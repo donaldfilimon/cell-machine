@@ -1,8 +1,6 @@
 # AGENTS.md
 
-See [CLAUDE.md](CLAUDE.md) — it is canonical for this repository.
-
-Gate is `bun run check` (`tsc --noEmit`, then `bun test src`); there is no lint script. The suite covers `src/core/math.ts` only. The headless tick-loop command is in `CLAUDE.md` under Commands.
+See CLAUDE.md — canonical.
 
 <!-- machine-git-policy -->
 ## Git workflow (machine policy, 2026-08-27)

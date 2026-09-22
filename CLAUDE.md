@@ -44,8 +44,10 @@ bun -e 'import { Cell } from "./src/core/cell"; const c = new Cell(); let s; for
   is next regenerated; Bun 1.4.3 installs cleanly (`--frozen-lockfile` too) with
   the mismatch.
 - `src/core/cell.ts::Cell.tick()` is authoritative for execution order:
-  stimulus -> habituation -> reservoir -> predictor -> adaptive memory ->
-  episodic commit/retrieve -> arbiter -> action/planner -> governor -> snapshot.
+  stimulus -> habituation -> memory bias read -> reservoir -> predictor ->
+  adaptive memory update -> episodic commit/retrieve -> arbiter ->
+  action/planner (planner only on escalate) -> governor -> snapshot.
+  `src/core/cell.test.ts` pins this order; change both together.
 - Habituation gates the stimulus before the reservoir and gates the initial
   action readout again. Predict mode then blends in the predicted readout.
 - `arbiter.ts` checks episodic recall first, short-circuiting to `predict`.
