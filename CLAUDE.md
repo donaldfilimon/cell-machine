@@ -30,8 +30,11 @@ bun -e 'import { Cell } from "./src/core/cell"; const c = new Cell(); let s; for
 
 - This is a server-side reactive-control reference implementation with synthetic
   stimuli, a reservoir, online predictor, episodic recall, and a bounded toy BFS.
-  It is not the React/WebGPU app in sibling `cell-state-adaptive-bun-validated`,
-  despite their identical package names.
+  It is not the React/WebGPU app `cell-state-adaptive-bun-validated` (archived
+  since 2026-09-18). The two once shared a package name; this one is now
+  `cell-machine`. `bun.lock` still records the old root name until the lockfile
+  is next regenerated; Bun 1.4.3 installs cleanly (`--frozen-lockfile` too) with
+  the mismatch.
 - `src/core/cell.ts::Cell.tick()` is authoritative for execution order:
   stimulus -> habituation -> reservoir -> predictor -> adaptive memory ->
   episodic commit/retrieve -> arbiter -> action/planner -> governor -> snapshot.

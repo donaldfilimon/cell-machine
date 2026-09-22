@@ -1,5 +1,5 @@
 {
-  "name": "cell-state-adaptive-problem-solver",
+  "name": "cell-machine",
   "version": "1.0.0",
   "private": true,
   "module": "server.ts",
