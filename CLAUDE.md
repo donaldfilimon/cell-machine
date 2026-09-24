@@ -24,8 +24,9 @@ bun -e 'import { Cell } from "./src/core/cell"; const c = new Cell(); let s; for
 - The suite covers the numeric helpers (`math.test.ts`), `Cell.tick()` stage
   order via recording spies plus the arbiter's episodic short-circuit and the
   governor's perseveration clamp (`cell.test.ts`), and an HTTP/WebSocket smoke
-  (`src/server.test.ts`). Reservoir, habituation, predictor and memory numerics
-  are exercised only through the order test, not asserted.
+  (`src/server.test.ts`). Reservoir, habituation, memory, and predictor math
+  are exercised only through the order test, not asserted; predictor input and
+  returned-state isolation are checked in `predictor.test.ts`.
 - `tsconfig.json` checks TypeScript with strict indexed access; it does not
   check the plain-JS browser console in `public/app.js`.
 - `Bun.serve` imports `public/index.html` directly; no Vite or `dist/` step.

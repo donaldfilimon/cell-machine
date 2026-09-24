@@ -30,11 +30,12 @@ export class Predictor {
     this.errorEma = this.errorEma * 0.93 + error * 0.07;
 
     const prediction = matVec(this.weights, current);
-    this.prevReservoir = current;
-    this.prevPrediction = prediction;
+    // Keep the model's learning history independent of caller-owned arrays.
+    this.prevReservoir = [...current];
+    this.prevPrediction = [...prediction];
 
     return {
-      weights: this.weights,
+      weights: this.weights.map((row) => [...row]),
       lastPrediction: prediction,
       error,
       errorEma: this.errorEma,
