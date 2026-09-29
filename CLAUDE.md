@@ -17,7 +17,7 @@ bun -e 'import { Cell } from "./src/core/cell"; const c = new Cell(); let s; for
 
 - Use Bun and `bun.lock`; there is no runtime version pin in `package.json`.
 - `check` is the gate: `lint` then `typecheck` then `test`. `lint` runs oxlint
-  through `bunx` pinned to 1.76.0 (the version donald-filimon-sites uses), so it
+  through `bunx` pinned to 1.76.0 (the version `donaldfilimoncom/sites/` pins), so it
   is not in `package.json` or `bun.lock` and needs the npm registry or bunx's
   cache. oxlint currently reports only `unicorn(no-new-array)` warnings, which do
   not fail it. There is no build script or CI workflow.
